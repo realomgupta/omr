@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital OMR by Om Gupta</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #2563eb; --primary-hover: #1d4ed8; --success: #16a34a; --danger: #dc2626; 
+        --neutral: #6b7280; --bg: #f8fafc; --card: #ffffff; --text: #1e293b;
+        --tough: #f59e0b; --time-taking: #0ea5e9; --cant-solve: #ef4444;
+    }
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 20px; }
+    
+    /* Header */
+    .header { position: sticky; top: 0; background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); z-index: 100; flex-wrap: wrap; gap: 10px; }
+    .header-title { font-size: 1.2rem; font-weight: 700; color: var(--primary); cursor: pointer; }
+    
+    .timer-container { display: flex; align-items: center; gap: 15px; font-weight: 600; font-size: 1.1rem; }
+    .clock-display { background: #1e293b; color: #fff; padding: 6px 12px; border-radius: 6px; letter-spacing: 1px; }
+    .pause-btn { background: var(--tough); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    .pause-btn:hover { opacity: 0.9; }
+    .pause-btn.paused { background: var(--success); }
+
+    .container { max-width: 900px; margin: 20px auto; padding: 0 15px; }
+    
+    /* Dashboard Styles */
+    #dashboard-view { display: block; }
+    .welcome-banner { background: linear-gradient(135deg, var(--primary), #1e40af); color: white; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2); }
+    .welcome-banner h1 { margin: 0 0 10px 0; font-size: 2rem; }
+    .start-practice-btn { background: white; color: var(--primary); padding: 12px 30px; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 15px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .start-practice-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+    
+    .history-section { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .history-section h2 { margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; color: var(--text); }
+    .history-grid { display: grid; gap: 15px; margin-top: 15px; }
+    .history-card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; flex-wrap: wrap; gap: 10px;}
+    .history-card .date { font-weight: 600; color: var(--text); font-size: 1.1rem; }
+    .history-card .details { color: var(--neutral); font-size: 0.9rem; margin-top: 5px; }
+    .history-card .score-badge { background: #eff6ff; color: var(--primary); padding: 8px 15px; border-radius: 20px; font-weight: 700; font-size: 1.2rem; border: 1px solid #bfdbfe; }
+    .no-data { text-align: center; color: var(--neutral); padding: 20px; font-style: italic; }
+
+    /* OMR View Styles */
+    #omr-view { display: none; }
+    .controls { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px; }
+    .controls select, .controls input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; font-family: inherit; }
+    .controls button { padding: 10px 24px; background: var(--primary); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    
+    .question-row { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; background: var(--card); padding: 16px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-left: 5px solid transparent; transition: all 0.2s; cursor: pointer; }
+    .question-row.active { border-left-color: var(--primary); transform: translateX(4px); box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
+    .q-num { font-weight: 700; width: 45px; color: var(--text); font-size: 1.1rem; }
+    .q-timer { background: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; min-width: 55px; text-align: center; }
+    
+    .options { display: flex; gap: 8px; }
+    .opt-btn { width: 40px; height: 40px; border: 2px solid #e2e8f0; background: white; border-radius: 50%; cursor: pointer; font-weight: 600; font-size: 1rem; color: var(--text); transition: 0.2s; }
+    .opt-btn.selected { background-color: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
+    
+    .status-select { padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.9rem; font-weight: 600; outline: none; cursor: pointer; }
+    .status-select.tough { background-color: #fef3c7; color: #b45309; }
+    .status-select.time-taking { background-color: #e0f2fe; color: #0369a1; }
+    .status-select.cant-solve { background-color: #fee2e2; color: #b91c1c; }
+
+    .grading { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+    .grade-btn { padding: 8px 12px; border: 2px solid #e2e8f0; background: white; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+    .grade-btn.right.selected { background-color: var(--success); color: white; border-color: var(--success); }
+    .grade-btn.wrong.selected { background-color: var(--danger); color: white; border-color: var(--danger); }
+    .grade-btn.unattempted.selected { background-color: var(--neutral); color: white; border-color: var(--neutral); }
+
+    .submit-btn { display: none; width: 100%; padding: 16px; margin-top: 30px; background-color: var(--success); color: white; font-size: 1.1rem; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; box-shadow: 0 4px 6px rgba(22, 163, 74, 0.2); }
+
+    /* Results Dashboard */
+    .result-box { display: none; margin-top: 30px; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
+    .stat-card { background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0; }
+    .stat-card .value { font-size: 1.8rem; font-weight: 700; margin-top: 5px; }
+    
+    .save-return-btn { width: 100%; padding: 15px; margin-top: 20px; background-color: var(--primary); color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; }
+    
+    .quote-box { margin-top: 25px; padding: 20px; background: #e0f2fe; border-left: 5px solid var(--primary); border-radius: 8px; text-align: center; }
+    .quote-text { font-size: 1.15rem; font-style: italic; color: #0369a1; font-weight: 600; margin: 0; }
+
+    .footer { text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: var(--neutral); font-size: 0.95rem; }
+
+    @media (max-width: 768px) {
+        .question-row { flex-direction: column; align-items: flex-start; }
+        .grading { margin-left: 0; width: 100%; justify-content: flex-start; }
+        .header { flex-direction: column; text-align: center; }
+    }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-title" onclick="showDashboard()">📊 Digital OMR Portal</div>
+    <div class="timer-container" id="header-timer" style="display: none;">
+        <span class="clock-display" id="global-timer">00:00:00</span>
+        <button class="pause-btn paused" id="pauseBtn" onclick="togglePause()">▶ Start Timer</button>
+    </div>
+</div>
+
+<div class="container" id="dashboard-view">
+    <div class="welcome-banner">
+        <h1>Welcome back, Om Gupta</h1>
+        <p>Track your PYQ progress, analyze your tough questions, and dominate your exams.</p>
+        <button class="start-practice-btn" onclick="showOMR()">🚀 Start New OMR Practice</button>
+    </div>
+
+    <div class="history-section">
+        <h2>Past Test Results</h2>
+        <div class="history-grid" id="history-container">
+            </div>
+    </div>
+</div>
+
+<div class="container" id="omr-view">
+    <div class="controls">
+        <select id="optFormat">
+            <option value="ABCD">Options: A, B, C, D</option>
+            <option value="1234">Options: 1, 2, 3, 4</option>
+        </select>
+        <input type="number" id="numQuestions" value="100" min="1" max="200" title="Total Questions">
+        <button onclick="generateOMR()">Generate OMR Sheet</button>
+        <button onclick="showDashboard()" style="background: var(--neutral);">Cancel</button>
+    </div>
+
+    <div id="omr-container"></div>
+    <button class="submit-btn" id="submitBtn" onclick="calculateScore()">Submit & View Analysis</button>
+
+    <div class="result-box" id="resultBox">
+        <h2>Performance Analysis</h2>
+        <div class="stat-grid">
+            <div class="stat-card">Time<div class="value" id="res-time">00:00</div></div>
+            <div class="stat-card">Attempted<div class="value" id="res-attempted">0</div></div>
+            <div class="stat-card" style="color: var(--success);">Right ✅<div class="value" id="res-right">0</div></div>
+            <div class="stat-card" style="color: var(--danger);">Wrong ❌<div class="value" id="res-wrong">0</div></div>
+            <div class="stat-card" style="background: #eff6ff; color: var(--primary);">Score<div class="value" id="res-score">0</div></div>
+        </div>
+        
+        <div class="quote-box">
+            <p class="quote-text" id="motivational-quote"></p>
+        </div>
+
+        <button class="save-return-btn" onclick="saveDataAndReturn()">💾 Save Result & Return to Dashboard</button>
+    </div>
+</div>
+
+<div class="container footer">
+    Digital OMR Tracker | Developer: realomgupta@gmail.com
+</div>
+
+<script>
+    // --- APP STATE ---
+    let answers = {}; let grades = {}; let statuses = {}; let qTimes = {}; 
+    let totalSeconds = 0; let activeQ = 1; let timerInterval = null; let isPaused = true;
+    let currentTestStats = {}; // To hold data before saving
+
+    const quotes = [
+        "Success is the sum of small efforts, repeated day in and day out.",
+        "Every mock test is a stepping stone to your final merit list. Keep grinding!",
+        "Push yourself, because no one else is going to do it for you.",
+        "A seat doesn't come from wishing, it comes from working hard every single day."
+    ];
+
+    // --- NAVIGATION & DASHBOARD ---
+    window.onload = () => {
+        loadDashboard();
+    };
+
+    function showDashboard() {
+        document.getElementById('dashboard-view').style.display = 'block';
+        document.getElementById('omr-view').style.display = 'none';
+        document.getElementById('header-timer').style.display = 'none';
+        
+        // Stop timer if it was running
+        if(!isPaused) togglePause();
+        loadDashboard();
+    }
+
+    function showOMR() {
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('omr-view').style.display = 'block';
+        document.getElementById('header-timer').style.display = 'flex';
+        
+        // Reset the screen automatically
+        document.getElementById('omr-container').innerHTML = '';
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('resultBox').style.display = 'none';
+        document.getElementById('global-timer').innerText = "00:00:00";
+    }
+
+    function loadDashboard() {
+        const historyContainer = document.getElementById('history-container');
+        // Fetch saved history from browser's local storage
+        let history = JSON.parse(localStorage.getItem('omr_history')) || [];
+        
+        historyContainer.innerHTML = '';
+
+        if (history.length === 0) {
+            historyContainer.innerHTML = '<div class="no-data">No tests taken yet. Click "Start New OMR Practice" to begin!</div>';
+            return;
+        }
+
+        // Reverse history to show newest first
+        history.reverse().forEach((test, index) => {
+            historyContainer.innerHTML += `
+                <div class="history-card">
+                    <div>
+                        <div class="date">${test.date}</div>
+                        <div class="details">
+                            Total Qs: ${test.totalQ} | Right: ✅ ${test.right} | Wrong: ❌ ${test.wrong} <br>
+                            Time Taken: ⏱️ ${test.time}
+                        </div>
+                    </div>
+                    <div class="score-badge">${test.score} Pts</div>
+                </div>
+            `;
+        });
+    }
+
+    function saveDataAndReturn() {
+        let history = JSON.parse(localStorage.getItem('omr_history')) || [];
+        history.push(currentTestStats);
+        localStorage.setItem('omr_history', JSON.stringify(history));
+        showDashboard();
+    }
+
+    // --- OMR FUNCTIONALITY ---
+    function formatTime(sec) {
+        let h = Math.floor(sec / 3600); let m = Math.floor((sec % 3600) / 60); let s = sec % 60;
+        let pad = (n) => n < 10 ? '0' + n : n; return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    }
+    function formatMinSec(sec) {
+        let m = Math.floor(sec / 60); let s = sec % 60; let pad = (n) => n < 10 ? '0' + n : n; return `${pad(m)}:${pad(s)}`;
+    }
+
+    function togglePause() {
+        let btn = document.getElementById('pauseBtn');
+        if (isPaused) {
+            isPaused = false;
+            btn.innerText = "⏸ Pause Timer";
+            btn.classList.remove('paused');
+            if (!timerInterval) timerInterval = setInterval(runClock, 1000);
+        } else {
+            isPaused = true;
+            btn.innerText = "▶ Resume Timer";
+            btn.classList.add('paused');
+        }
+    }
+
+    function runClock() {
+        if (isPaused) return;
+        totalSeconds++;
+        document.getElementById('global-timer').innerText = formatTime(totalSeconds);
+        if (qTimes[activeQ] !== undefined) {
+            qTimes[activeQ]++;
+            document.getElementById(`timer-${activeQ}`).innerText = formatMinSec(qTimes[activeQ]);
+        }
+    }
+
+    function setActiveRow(qNum) {
+        document.querySelectorAll('.question-row').forEach(row => row.classList.remove('active'));
+        let row = document.getElementById(`row-${qNum}`);
+        if(row) { row.classList.add('active'); activeQ = qNum; }
+    }
+
+    function generateOMR() {
+        const numQ = parseInt(document.getElementById('numQuestions').value);
+        const format = document.getElementById('optFormat').value;
+        const opts = format === 'ABCD' ? ['A', 'B', 'C', 'D'] : ['1', '2', '3', '4'];
+        
+        const container = document.getElementById('omr-container');
+        container.innerHTML = '';
+        answers = {}; grades = {}; statuses = {}; qTimes = {};
+        totalSeconds = 0; activeQ = 1; isPaused = true;
+        
+        clearInterval(timerInterval); timerInterval = null;
+        document.getElementById('global-timer').innerText = "00:00:00";
+        document.getElementById('pauseBtn').innerText = "▶ Start Timer";
+        document.getElementById('pauseBtn').classList.add('paused');
+
+        for (let i = 1; i <= numQ; i++) {
+            qTimes[i] = 0; statuses[i] = 'normal'; 
+            const row = document.createElement('div');
+            row.className = 'question-row'; row.id = `row-${i}`; row.onclick = () => setActiveRow(i);
+            
+            let optionsHTML = '';
+            opts.forEach(opt => {
+                optionsHTML += `<button class="opt-btn" id="q${i}-${opt}" onclick="selectOption(${i}, '${opt}', '${opts.join('')}')">${opt}</button>`;
+            });
+
+            row.innerHTML = `
+                <div class="q-num">Q${i}</div>
+                <div class="q-timer" id="timer-${i}">00:00</div>
+                <div class="options">${optionsHTML}</div>
+                <select class="status-select" id="status-${i}" onchange="changeStatus(${i}, this)">
+                    <option value="normal">Normal</option>
+                    <option value="tough">Tough</option>
+                    <option value="time-taking">Time Taking</option>
+                    <option value="cant-solve">Can't Solve</option>
+                </select>
+                <div class="grading">
+                    <button class="grade-btn right" id="grade${i}-right" onclick="selectGrade(${i}, 'right')">✅ Right</button>
+                    <button class="grade-btn wrong" id="grade${i}-wrong" onclick="selectGrade(${i}, 'wrong')">❌ Wrong</button>
+                    <button class="grade-btn unattempted" id="grade${i}-unattempted" onclick="selectGrade(${i}, 'unattempted')">➖ Skip</button>
+                </div>
+            `;
+            container.appendChild(row);
+        }
+        
+        setActiveRow(1);
+        document.getElementById('submitBtn').style.display = 'block';
+        document.getElementById('resultBox').style.display = 'none';
+    }
+
+    function selectOption(qNum, opt, allOptsStr) {
+        const allOpts = allOptsStr.split('');
+        allOpts.forEach(o => document.getElementById(`q${qNum}-${o}`).classList.remove('selected'));
+        document.getElementById(`q${qNum}-${opt}`).classList.add('selected');
+        answers[qNum] = opt;
+        
+        const totalQ = parseInt(document.getElementById('numQuestions').value);
+        if (qNum < totalQ) setActiveRow(qNum + 1);
+    }
+
+    function changeStatus(qNum, selectElement) {
+        selectElement.className = 'status-select'; 
+        if (selectElement.value !== 'normal') selectElement.classList.add(selectElement.value);
+        statuses[qNum] = selectElement.value;
+    }
+
+    function selectGrade(qNum, type) {
+        ['right', 'wrong', 'unattempted'].forEach(t => document.getElementById(`grade${qNum}-${t}`).classList.remove('selected'));
+        document.getElementById(`grade${qNum}-${type}`).classList.add('selected');
+        grades[qNum] = type;
+    }
+
+    function calculateScore() {
+        if(!isPaused) togglePause(); 
+
+        let rightCount = 0, wrongCount = 0;
+        const totalQuestions = parseInt(document.getElementById('numQuestions').value);
+
+        for (let i = 1; i <= totalQuestions; i++) {
+            let g = grades[i] || 'unattempted';
+            if (g === 'right') rightCount++;
+            else if (g === 'wrong') wrongCount++;
+        }
+
+        let attemptedCount = rightCount + wrongCount;
+        let score = (rightCount * 2) - (wrongCount * 0.5);
+        let finalTime = formatTime(totalSeconds);
+
+        document.getElementById('res-time').innerText = finalTime;
+        document.getElementById('res-attempted').innerText = attemptedCount;
+        document.getElementById('res-right').innerText = rightCount;
+        document.getElementById('res-wrong').innerText = wrongCount;
+        document.getElementById('res-score').innerText = score.toFixed(2);
+        
+        // Prepare data to be saved to dashboard
+        currentTestStats = {
+            date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            totalQ: totalQuestions,
+            right: rightCount,
+            wrong: wrongCount,
+            score: score.toFixed(2),
+            time: finalTime
+        };
+
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById('motivational-quote').innerText = `"${randomQuote}"`;
+
+        document.getElementById('resultBox').style.display = 'block';
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
+
